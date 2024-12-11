@@ -14,8 +14,9 @@ grid = [["" for _ in range(3)] for _ in range(3)]
 WHITE = (255, 255, 255)
 BLACK = (0, 0, 0)
 LIGHT_GREY = (211, 211, 211)
-PASTEL_GREEN = (119, 221, 119)
 PASTEL_RED = (255, 182, 193) 
+PASTEL_GREEN = (119, 221, 119)
+PASTEL_BLUE = (174, 198, 207)
 
 pygame.display.set_caption("Tic Tac Toe")  
 pygame.display.set_icon(pygame.image.load('Assets/icon.png'))
@@ -75,36 +76,31 @@ def setGrid():
         for j in range (3):
             grid[i][j] = GridSlot((i, j), pygame.Rect((j * 200) + 110, (i * 200) + 110, 180, 180))
 
-def checkWin():
-    for i in range(3):   
-        if grid[i][0].type == grid[i][1].type == grid[i][2].type: 
-            if grid[i][0].type != None: return True
-        if grid[0][i].type == grid[1][i].type == grid[2][i].type: 
-            if grid[0][i].type != None: return True
-        if grid[0][0].type == grid[1][1].type == grid[2][2].type:
-            if grid[0][0].type != None: return True
-        if grid[0][2].type == grid[1][1].type == grid[2][0].type:
-            if grid[0][2].type != None: return True
-    return False
-
 def checkWin(slot):
-    global grid
     if slot.type == None: return False
     row = slot.pos[0]
     column = slot.pos[1]
 
-    if grid[row][0].type == grid[row][1].type == grid[row][2].type: return True
-    if grid[0][column].type == grid[1][column].type == grid[2][column].type: return True
+    rowWin = grid[row][0].type == grid[row][1].type == grid[row][2].type
+    columnWin = grid[0][column].type == grid[1][column].type == grid[2][column].type
 
+    if rowWin:
+        pygame.draw.line(screen, PASTEL_BLUE, (grid[row][0].collide[0], grid[row][0].collide[1] + 90), (grid[row][2].collide[0] + 180, grid[row][2].collide[1] + 90), 7)
+    if columnWin:
+        pygame.draw.line(screen, PASTEL_BLUE, (grid[0][column].collide[0] + 90, grid[0][column].collide[1]), (grid[2][column].collide[0] + 90, grid[2][column].collide[1] + 180), 7)
+
+    leadingDiagonalWin = False
+    antiDiagonalWin = False
     if slot.pos in ((0, 0), (2, 0), (2, 2), (0, 2), (1, 1)) and grid[1][1].type != None:
-        if grid[0][0].type == grid[1][1].type == grid[2][2].type: return True
-        if grid[0][2].type == grid[1][1].type == grid[2][0].type: return True
-        
-    return False
+        leadingDiagonalWin = grid[0][0].type == grid[1][1].type == grid[2][2].type
+        antiDiagonalWin = grid[2][0].type == grid[1][1].type == grid[0][2].type
 
-def win():
-    print("game won")
-    input()
+        if leadingDiagonalWin:
+            pygame.draw.line(screen, PASTEL_BLUE, (grid[0][0].collide[0], grid[0][0].collide[1]), (grid[2][2].collide[0] + 180, grid[2][2].collide[1] + 180), 7)
+        if antiDiagonalWin:
+            pygame.draw.line(screen, PASTEL_BLUE, (grid[2][0].collide[0], grid[2][0].collide[1] + 180), (grid[0][2].collide[0] + 180, grid[0][2].collide[1]), 7)
+    
+    return rowWin or columnWin or leadingDiagonalWin or antiDiagonalWin
 
 def main():
     global running, gameStart, playerOneTurn
@@ -122,13 +118,12 @@ def main():
                     turn = slot.drawIcon(mousePos, playerOneTurn)
                     if turn in (True, False):
                         playerOneTurn = turn    
-                        if checkWin(slot):
-                            print("game won")         
+                        checkWin(slot)   
         else:
             drawGrid()
             setGrid()
   
         pygame.display.flip()
-
+  
 main()
 pygame.quit() 
