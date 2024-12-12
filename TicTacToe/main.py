@@ -1,11 +1,12 @@
 import pygame
 import threading
-import queue
 from pygame import mixer
 
 mixer.init()  
-mixer.music.load("Assets/click.mp3")   
-mixer.music.set_volume(0.7) 
+click = "Assets/click.mp3"  
+winSFX = "Assets/gamewin.wav"
+drawSFX = "Assets/gamedraw.mp3"
+mixer.music.set_volume(0.7)
   
 WIDTH, HEIGHT = 800, 800
 lineStart = [(300, 100), (500, 100), (100,300), (100, 500)]
@@ -60,6 +61,7 @@ class GridSlot:
                     noughtTransparent.set_alpha(20)
                     screen.blit(noughtTransparent, self.collide)
                 if pygame.mouse.get_pressed()[0]:
+                    pygame.mixer.music.load(click)
                     mixer.music.play()
                     if playerOneTurn:
                         pygame.draw.rect(screen, WHITE, self.collide)
@@ -140,7 +142,7 @@ def gameWin():
     global gameStart, gameWon
     gameStart = False
     gameWon = False
-
+    
     pygame.time.delay(750)
     fade = pygame.Surface((WIDTH, HEIGHT))
     fade.fill(WHITE)
@@ -163,13 +165,15 @@ def main():
 
         mousePos = pygame.mouse.get_pos()
 
+        win = draw = False
         if gameStart and not gameWon:
             for row in grid:
                 for slot in row:
                     turn = slot.drawIcon(mousePos, playerOneTurn)
                     if turn in (True, False):
                         playerOneTurn = turn    
-                        gameWon = checkWin(slot) or checkDraw() 
+                        win = checkWin(slot)
+                        draw = checkDraw() 
         elif not gameWon:
             drawGrid()
             setGrid()
@@ -177,7 +181,13 @@ def main():
 
         pygame.display.flip()
 
-        if gameWon:
+        if win or draw:
+            if win:
+                pygame.mixer.music.load(winSFX)
+                mixer.music.play()
+            if draw:
+                pygame.mixer.music.load(drawSFX)
+                mixer.music.play()
             gameWin()
             main()
 
