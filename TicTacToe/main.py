@@ -112,7 +112,7 @@ def checkWin(slot):
         if leadingDiagonalWin:
             drawLineAnimation(LIGHT_GREY, (grid[0][0].collide[0], grid[0][0].collide[1]), (grid[2][2].collide[0] + 180, grid[2][2].collide[1] + 180), 7, 0.01)
         if antiDiagonalWin:
-            drawLineAnimation(LIGHT_GREY, (grid[2][0].collide[0], grid[2][0].collide[1] + 180), (grid[0][2].collide[0] + 180, grid[0][2].collide[1]), 7, 0.01)
+            drawLineAnimation(LIGHT_GREY, (grid[0][2].collide[0] + 180, grid[0][2].collide[1]), (grid[2][0].collide[0], grid[2][0].collide[1] + 180), 7, 0.01)
     
     return rowWin or columnWin or leadingDiagonalWin or antiDiagonalWin
 
@@ -185,7 +185,7 @@ def main():
             if win:
                 pygame.mixer.music.load(winSFX)
                 mixer.music.play()
-            if draw:
+            elif draw:
                 pygame.mixer.music.load(drawSFX)
                 mixer.music.play()
             gameWin()
