@@ -1,4 +1,6 @@
 import pygame
+import threading
+import queue
 from pygame import mixer
 
 mixer.init()  
@@ -18,6 +20,8 @@ PASTEL_RED = (255, 182, 193)
 PASTEL_GREEN = (119, 221, 119)
 PASTEL_BLUE = (174, 198, 207)
 
+MAX_FPS = 60
+
 pygame.display.set_caption("Tic Tac Toe")  
 pygame.display.set_icon(pygame.image.load('Assets/icon.png'))
 
@@ -36,6 +40,7 @@ running = True
 gameStart = False
 lineNumber = 0
 playerOneTurn = True
+gameWon = False
 
 class GridSlot:
     type = None
@@ -46,7 +51,14 @@ class GridSlot:
     def drawIcon(self, mousePos, playerOneTurn):
         if self.type == None:
             if self.collide.collidepoint(mousePos):
-                pygame.draw.rect(screen, LIGHT_GREY, self.collide)
+                if playerOneTurn:
+                    crossTransparent = cross.convert_alpha()
+                    crossTransparent.set_alpha(20)
+                    screen.blit(crossTransparent, self.collide)
+                else:
+                    noughtTransparent = nought.convert_alpha()
+                    noughtTransparent.set_alpha(20)
+                    screen.blit(noughtTransparent, self.collide)
                 if pygame.mouse.get_pressed()[0]:
                     mixer.music.play()
                     if playerOneTurn:
@@ -63,13 +75,13 @@ class GridSlot:
 
 def drawGrid():
     pygame.time.delay(100)
-    global gameStart, lineNumber
-    while lineNumber < 4:
-        pygame.draw.line(screen, BLACK, lineStart[lineNumber], lineEnd[lineNumber], 10)
-        pygame.display.flip()
-        pygame.time.delay(250)
+    lineNumber = 0
+    while (lineNumber < 4):
+        line = threading.Thread(target = drawLineAnimation, args = (BLACK, lineStart[lineNumber], lineEnd[lineNumber], 10, 0.015))
+        line.start()
         lineNumber += 1
-    gameStart = True
+        pygame.time.delay(250)
+    pygame.time.delay(800)
 
 def setGrid():
     for i in range(3):
@@ -85,9 +97,9 @@ def checkWin(slot):
     columnWin = grid[0][column].type == grid[1][column].type == grid[2][column].type
 
     if rowWin:
-        pygame.draw.line(screen, PASTEL_BLUE, (grid[row][0].collide[0], grid[row][0].collide[1] + 90), (grid[row][2].collide[0] + 180, grid[row][2].collide[1] + 90), 7)
+        drawLineAnimation(LIGHT_GREY, (grid[row][0].collide[0], grid[row][0].collide[1] + 90), (grid[row][2].collide[0] + 180, grid[row][2].collide[1] + 90), 7, 0.01)
     if columnWin:
-        pygame.draw.line(screen, PASTEL_BLUE, (grid[0][column].collide[0] + 90, grid[0][column].collide[1]), (grid[2][column].collide[0] + 90, grid[2][column].collide[1] + 180), 7)
+        drawLineAnimation(LIGHT_GREY, (grid[0][column].collide[0] + 90, grid[0][column].collide[1]), (grid[2][column].collide[0] + 90, grid[2][column].collide[1] + 180), 7, 0.01)
 
     leadingDiagonalWin = False
     antiDiagonalWin = False
@@ -96,34 +108,78 @@ def checkWin(slot):
         antiDiagonalWin = grid[2][0].type == grid[1][1].type == grid[0][2].type
 
         if leadingDiagonalWin:
-            pygame.draw.line(screen, PASTEL_BLUE, (grid[0][0].collide[0], grid[0][0].collide[1]), (grid[2][2].collide[0] + 180, grid[2][2].collide[1] + 180), 7)
+            drawLineAnimation(LIGHT_GREY, (grid[0][0].collide[0], grid[0][0].collide[1]), (grid[2][2].collide[0] + 180, grid[2][2].collide[1] + 180), 7, 0.01)
         if antiDiagonalWin:
-            pygame.draw.line(screen, PASTEL_BLUE, (grid[2][0].collide[0], grid[2][0].collide[1] + 180), (grid[0][2].collide[0] + 180, grid[0][2].collide[1]), 7)
+            drawLineAnimation(LIGHT_GREY, (grid[2][0].collide[0], grid[2][0].collide[1] + 180), (grid[0][2].collide[0] + 180, grid[0][2].collide[1]), 7, 0.01)
     
     return rowWin or columnWin or leadingDiagonalWin or antiDiagonalWin
 
+def checkDraw():
+    for row in grid:
+        for slot in row:
+            if slot.type == None:
+                return False
+    return True
+
+def easeInOutCubic(p):
+    return 4 * (p ** 3) if p < 0.5 else 1 - ((-2 * p + 2) ** 3) / 2
+
+def easeInQuart(p):
+    return p ** 4
+
+def drawLineAnimation(colour, start, end, thickness, speed):
+    p = 0
+    while p <= 1:
+        clock.tick(MAX_FPS)
+        pygame.display.flip()
+        pygame.draw.line(screen, colour, start, (start[0] + (end[0] - start[0]) * easeInOutCubic(p), start[1] + (end[1] - start[1]) * easeInOutCubic(p)), thickness)
+        p += speed
+    return True
+
+def gameWin():
+    global gameStart, gameWon
+    gameStart = False
+    gameWon = False
+
+    pygame.time.delay(750)
+    fade = pygame.Surface((WIDTH, HEIGHT))
+    fade.fill(WHITE)
+
+    alpha = 0
+    while (alpha <= 1):
+        clock.tick(MAX_FPS)
+        fade.set_alpha(easeInQuart(alpha) * 256)
+        screen.blit(fade, (0, 0))
+        pygame.display.flip()
+        alpha += 0.005
+
 def main():
-    global running, gameStart, playerOneTurn
+    global running, gameStart, playerOneTurn, gameWon
     while running:
-        clock.tick(60)
+        clock.tick(MAX_FPS)
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 running = False 
 
         mousePos = pygame.mouse.get_pos()
 
-        if gameStart:
+        if gameStart and not gameWon:
             for row in grid:
                 for slot in row:
                     turn = slot.drawIcon(mousePos, playerOneTurn)
                     if turn in (True, False):
                         playerOneTurn = turn    
-                        checkWin(slot)   
-        else:
+                        gameWon = checkWin(slot) or checkDraw() 
+        elif not gameWon:
             drawGrid()
             setGrid()
-  
+            gameStart = True
+
         pygame.display.flip()
-  
+
+        if gameWon:
+            gameWin()
+            main()
+
 main()
 pygame.quit() 
