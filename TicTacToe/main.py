@@ -45,11 +45,11 @@ gameWon = False
 
 class GridSlot:
     type = None
-    def __init__(self, pos, collide):
+    def __init__(self, pos: tuple, collide: pygame.Rect):
         self.pos = pos
         self.collide = collide
     
-    def drawIcon(self, mousePos, playerOneTurn):
+    def drawIcon(self, mousePos: tuple, playerOneTurn: bool) -> bool:
         if self.type == None:
             if self.collide.collidepoint(mousePos):
                 if playerOneTurn:
@@ -75,23 +75,26 @@ class GridSlot:
             else:
                 pygame.draw.rect(screen, WHITE, self.collide)
 
-def drawGrid():
+def drawGrid() -> None:
     pygame.time.delay(100)
     lineNumber = 0
     while (lineNumber < 4):
         line = threading.Thread(target = drawLineAnimation, args = (BLACK, lineStart[lineNumber], lineEnd[lineNumber], 10, 0.015))
-        line.start()
+        #line.start()
+        drawLineAnimation(BLACK, lineStart[lineNumber], lineEnd[lineNumber], 10, 0.03)
         lineNumber += 1
-        pygame.time.delay(250)
+        pygame.time.delay(150)
     pygame.time.delay(800)
 
-def setGrid():
+def setGrid() -> None:
     for i in range(3):
         for j in range (3):
             grid[i][j] = GridSlot((i, j), pygame.Rect((j * 200) + 110, (i * 200) + 110, 180, 180))
 
-def checkWin(slot):
+def checkWin(slot: GridSlot) -> bool:
+    gameWin = False
     if slot.type == None: return False
+
     row = slot.pos[0]
     column = slot.pos[1]
 
@@ -114,31 +117,32 @@ def checkWin(slot):
         if antiDiagonalWin:
             drawLineAnimation(LIGHT_GREY, (grid[0][2].collide[0] + 180, grid[0][2].collide[1]), (grid[2][0].collide[0], grid[2][0].collide[1] + 180), 7, 0.01)
     
-    return rowWin or columnWin or leadingDiagonalWin or antiDiagonalWin
+    gameWin = rowWin or columnWin or leadingDiagonalWin or antiDiagonalWin
+    
+    return gameWin
 
-def checkDraw():
+def checkDraw() -> bool:
     for row in grid:
         for slot in row:
             if slot.type == None:
                 return False
     return True
 
-def easeInOutCubic(p):
+def easeInOutCubic(p: float) -> float:
     return 4 * (p ** 3) if p < 0.5 else 1 - ((-2 * p + 2) ** 3) / 2
 
-def easeInQuart(p):
+def easeInQuart(p: float) -> float:
     return p ** 4
 
-def drawLineAnimation(colour, start, end, thickness, speed):
+def drawLineAnimation(colour: tuple, start: tuple, end: tuple, thickness: int, speed: float) -> None:
     p = 0
     while p <= 1:
         clock.tick(MAX_FPS)
         pygame.display.flip()
         pygame.draw.line(screen, colour, start, (start[0] + (end[0] - start[0]) * easeInOutCubic(p), start[1] + (end[1] - start[1]) * easeInOutCubic(p)), thickness)
         p += speed
-    return True
 
-def gameWin():
+def endGame() -> None:
     global gameStart, gameWon
     gameStart = False
     gameWon = False
@@ -182,14 +186,12 @@ def main():
         pygame.display.flip()
 
         if win or draw:
-            if win:
-                pygame.mixer.music.load(winSFX)
-                mixer.music.play()
-            elif draw:
-                pygame.mixer.music.load(drawSFX)
-                mixer.music.play()
-            gameWin()
+            endSFX = winSFX if gameWon else drawSFX
+            pygame.mixer.music.load(endSFX)
+            mixer.music.play()
+            endGame()
             main()
 
-main()
-pygame.quit() 
+if __name__ == '__main__':
+    main()
+    pygame.quit() 
