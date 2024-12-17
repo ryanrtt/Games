@@ -27,6 +27,7 @@ DIRECTIONS = (
 )
 
 TILES = {
+    -1 : 8,
     0 : 9,
     1 : 0,
     2 : 1,
@@ -63,7 +64,7 @@ class Cell:
         y = self.coordinate[1]
 
         for dir in DIRECTIONS:
-            if x + dir[0] >= 0 and x + dir[0] < NUM_COLUMNS and y + dir[1] >= 0 and y + dir[1] < NUM_ROWS:
+            if x + dir[0] > -1 and x + dir[0] < NUM_COLUMNS and y + dir[1] > -1 and y + dir[1] < NUM_ROWS:
                 if grid[y + dir[1]][x + dir[0]].type == 'M': count += 1  
         return count
 
@@ -141,6 +142,8 @@ def updateBoard() -> None:
         for cell in row:
             if cell.flagged:
                 screen.blit(tiles[TILES['F']], cell.position)
+            elif not cell.revealed:
+                screen.blit(tiles[TILES[-1]], cell.position)
             else:
                 screen.blit(tiles[TILES[cell.type]], cell.position)
     pygame.display.flip()
@@ -176,12 +179,13 @@ def main() -> None:
                 if event.key == pygame.K_q:
                     running = False
                 if event.key == pygame.K_a:
-                    for mine in mines:
-                        mine.flagged = True if not mine.flagged else False
+                    for row in grid:
+                        for cell in row:
+                            cell.revealed = True if not cell.revealed else False
         updateBoard()
     
 
 if __name__ == '__main__':
     initDisplay()
-    setupGame('H')
+    setupGame('M')
     main()
