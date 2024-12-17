@@ -1,6 +1,7 @@
 import pygame
 import random
 import sys
+import os
 from enum import Enum
 from typing import List
 
@@ -95,6 +96,15 @@ flags: List[Cell]
 running: bool
 alive : bool
 
+def resource_path(relative_path):
+    try:
+    # PyInstaller creates a temp folder and stores path in _MEIPASS
+        base_path = sys._MEIPASS
+    except Exception:
+        base_path = os.path.abspath(".")
+
+    return os.path.join(base_path, relative_path)
+
 def initVariables() -> None:
     global gameStart, tiles_sheet, tiles, safe_tiles, mines, flags, running, alive
 
@@ -157,8 +167,8 @@ def getTileSprites() -> None:
             tile = tiles_sheet.subsurface(select)
             tiles.append(pygame.transform.scale_by(tile, 2))
 
-def setMines(nunMines: int) -> None:
-    for m in range(nunMines):
+def setMines(numMines: int) -> None:
+    for m in range(numMines):
         random_x = random.randrange(0, NUM_COLUMNS)
         random_y = random.randrange(0, NUM_ROWS)
         random_cell = grid[random_y][random_x]
@@ -195,7 +205,6 @@ def mouseClick(mousePos: tuple, button: int) -> None:
             autoFill((mouse_x, mouse_y))
         cell.revealed = True
     
-
     elif button == 3 and not cell.revealed:
         if not cell.flagged:
             cell.flagged = True
@@ -203,10 +212,6 @@ def mouseClick(mousePos: tuple, button: int) -> None:
         else:
             cell.flagged = False
             flags.pop()
-
-def mouseHold(mousePos: tuple):
-    mouse_x = (mousePos[0] - (WIDTH - (NUM_COLUMNS * CELL_WIDTH)) // 2) // CELL_WIDTH
-    mouse_y = (mousePos[1] - (HEIGHT - (NUM_ROWS * CELL_HEIGHT)) // 2) // CELL_HEIGHT
 
 def outOfBounds(x: int, y: int) -> bool:
     return x < 0 or x >= NUM_COLUMNS or y < 0 or y >= NUM_ROWS
@@ -289,10 +294,6 @@ def main() -> None:
     global running
     while running:
         mousePos = pygame.mouse.get_pos()
-        # print((mousePos[1] - (HEIGHT - (NUM_ROWS * CELL_HEIGHT)) // 2, mousePos[0] - (WIDTH - (NUM_COLUMNS * CELL_WIDTH)) // 2))
-
-        #if pygame.mouse.get_pressed()[0]:
-            #mouseHold(mousePos)
 
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
@@ -312,5 +313,5 @@ def main() -> None:
         updateBoard()
       
 if __name__ == '__main__':
-    setupGame('M')
+    setupGame('EX')
     main()
