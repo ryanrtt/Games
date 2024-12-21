@@ -39,7 +39,7 @@ TILES = {
     8 : 7, # 8 cell
     'F' : 10, # flagged
     'M': 13, # mine
-    '!M' : 14, # clicked mine 
+    'M!' : 14, # clicked mine 
     'XM' : 15 # incorrect mine
 }
 
@@ -170,7 +170,9 @@ def getTileSprites() -> None:
             tiles.append(pygame.transform.scale_by(tile, 2))
 
 def setMines(numMines: int) -> None:
-    for _ in range(numMines):
+    placedMines: int = 0
+
+    while placedMines < numMines:
         random_x: int = random.randrange(0, NUM_COLUMNS)
         random_y: int = random.randrange(0, NUM_ROWS)
         random_cell: Cell = grid[random_y][random_x]
@@ -178,6 +180,9 @@ def setMines(numMines: int) -> None:
         if random_cell.type != 'M' and random_cell not in safe_tiles:
             random_cell.type = 'M'
             mines.append(random_cell)
+            placedMines += 1
+
+    print(len(mines))
 
 def setGrid() -> None:
     setMines(NUM_MINES)
@@ -200,7 +205,7 @@ def mouseClick(mousePos: tuple, button: int) -> None:
 
         if cell.type == 0: floodFill((mouse_x, mouse_y))
         elif cell.type == 'M':          
-            cell.type = '!M'
+            cell.type = 'M!'
             endGame()
         elif cell.type in range(1, 9) and cell.type == cell.countFlags(): autoFill((mouse_x, mouse_y))
         cell.revealed = True
@@ -213,11 +218,26 @@ def mouseClick(mousePos: tuple, button: int) -> None:
             cell.flagged = False
             flags.pop()
 
+def mouseHold(mousePos: tuple) -> List[Cell]:
+    mouse_x = (mousePos[0] - (WIDTH - (NUM_COLUMNS * CELL_WIDTH)) // 2) // CELL_WIDTH
+    mouse_y = (mousePos[1] - (HEIGHT - (NUM_ROWS * CELL_HEIGHT)) // 2) // CELL_HEIGHT
+
+    cell: Cell = grid[mouse_y][mouse_x]
+    temps: List[Cell] = []
+
+    if cell.revealed and cell.type in range(1,9):
+        for dx, dy in DIRECTIONS:
+            if not outOfBounds(mouse_x + dx, mouse_y + dy) and not grid[mouse_y + dy][mouse_x + dx].revealed and not grid[mouse_y + dy][mouse_x + dx].flagged:
+                temps.append(grid[mouse_y + dy][mouse_x + dx])
+    elif not cell.revealed:
+        temps.append(cell)
+
+    return temps
+
 def outOfBounds(x: int, y: int) -> bool:
     return x < 0 or x > NUM_COLUMNS - 1 or y < 0 or y > NUM_ROWS - 1
 
 def firstClick(cell: Cell) -> None:
-    cell.type = 0
     x: int = cell.coordinate[0]
     y: int = cell.coordinate[1]
 
@@ -237,7 +257,7 @@ def floodFill(coordinate: tuple) -> None:
 
     if cell.flagged: return  
     if cell.revealed: return
-    if cell.type == 'M': return 
+    if cell.type == 'M': return
 
     grid[y][x].revealed = True
 
@@ -257,14 +277,16 @@ def autoFill(coordinate: tuple) -> None:
                 if cell.type == 0: floodFill((x + dir[0], y + dir[1]))
                 cell.revealed = True
             if cell.type == 'M' and not cell.flagged:
-                cell.type = '!M'
+                cell.type = 'M!'
                 endGame()
                 return
 
-def updateBoard() -> None:
+def updateBoard(temps: List[Cell]) -> None:
     for row in grid:
-        for cell in row:
-            if cell.flagged:
+        for cell in row:    
+            if cell in temps:
+                screen.blit(tiles[TILES[0]], cell.position)
+            elif cell.flagged:
                 screen.blit(tiles[TILES['F']], cell.position)
             elif not cell.revealed:
                 screen.blit(tiles[TILES[-1]], cell.position)
@@ -316,16 +338,31 @@ def main() -> None:
                     running = False
                     pygame.quit()
                     sys.exit()
- 
+
+                if event.key == pygame.K_s:
+                    mouseClick(mousePos, 3)
+                    if gameWin() and alive:
+                        alive = False
+                        pygame.mixer.music.load(win)
+                        mixer.music.play()
+                
+                if event.key == pygame.K_m:
+                    for mine in mines:
+                        mine.revealed = True if mine.revealed == False else False
+
             if event.type == pygame.MOUSEBUTTONUP and alive:
                 mouseClick(mousePos, event.button)
                 if gameWin() and alive:
                     alive = False
                     pygame.mixer.music.load(win)
                     mixer.music.play()
+        
+        temp: List[Cell] = []
+        if pygame.mouse.get_pressed()[0] and alive:
+            temp = mouseHold(mousePos)
 
-        updateBoard()
+        updateBoard(temp)
       
 if __name__ == '__main__':
-    setupGame('M')
+    setupGame('H')
     main()
