@@ -182,8 +182,6 @@ def setMines(numMines: int) -> None:
             mines.append(random_cell)
             placedMines += 1
 
-    print(len(mines))
-
 def setGrid() -> None:
     setMines(NUM_MINES)
     for row in grid:
@@ -224,12 +222,12 @@ def mouseHold(mousePos: tuple) -> List[Cell]:
 
     cell: Cell = grid[mouse_y][mouse_x]
     temps: List[Cell] = []
-
+    
     if cell.revealed and cell.type in range(1,9):
         for dx, dy in DIRECTIONS:
             if not outOfBounds(mouse_x + dx, mouse_y + dy) and not grid[mouse_y + dy][mouse_x + dx].revealed and not grid[mouse_y + dy][mouse_x + dx].flagged:
                 temps.append(grid[mouse_y + dy][mouse_x + dx])
-    elif not cell.revealed:
+    elif not cell.revealed and not cell.flagged:
         temps.append(cell)
 
     return temps
